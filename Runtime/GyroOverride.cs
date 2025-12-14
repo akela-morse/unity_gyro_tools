@@ -104,7 +104,7 @@ namespace MoreStories.GyroTools
         static void ImplementIMU()
         {
 
-            RefreshGamepadControls(null, InputDeviceChange.Enabled);
+            RefreshGamepadControls(null, InputDeviceChange.Added);
             InputSystem.onDeviceChange -= RefreshGamepadControls;
             InputSystem.onDeviceChange += RefreshGamepadControls;
 
@@ -157,7 +157,7 @@ namespace MoreStories.GyroTools
 
         static void RefreshGamepadControls(InputDevice device, InputDeviceChange change)
         {
-            if(change == InputDeviceChange.Added || change == InputDeviceChange.Removed)
+            if(change == InputDeviceChange.Added || change == InputDeviceChange.Disconnected)
             {
                 var gamepads = Gamepad.all;
                 motionControls = new MotionControls[gamepads.Count];

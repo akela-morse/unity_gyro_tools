@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.InputSystem;
@@ -25,4 +24,4 @@ namespace MoreStories.GyroTools.Editor
         }
     }
 }
-    #endif
+    
