@@ -1,12 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Layouts;
 using System.Runtime.InteropServices;
 using UnityEngine.InputSystem.Controls;
 using System.Collections.Concurrent;
-using JetBrains.Annotations;
-using System;
-using UnityEngine.Networking;
 
 namespace MoreStories.GyroTools
 {
@@ -93,7 +89,8 @@ namespace MoreStories.GyroTools
         static ConcurrentQueue<ImuReading> gyroReadings  = new ConcurrentQueue<ImuReading>(), 
                                            accelReadings = new ConcurrentQueue<ImuReading>();
         
-        static bool LoadImuReading(ImuType imuType, ref ImuReading imuReading) => imuType switch
+        static bool LoadImuReading(ImuType imuType, ref ImuReading imuReading) 
+        => imuType switch
         {
             ImuType.Gyroscope     => gyroReadings.  TryDequeue(out imuReading),
             ImuType.Accelerometer => accelReadings. TryDequeue(out imuReading),
@@ -151,9 +148,17 @@ namespace MoreStories.GyroTools
             InputSystem.onBeforeUpdate -= FeedImuValues;
 
         }
-        static void ReadGyro  (int controllerIndex, float x, float y, float z) => gyroReadings.Enqueue  (new ImuReading(controllerIndex, x, y, z));
+        
+        /// According to the SDL wiki SDL uses a right hand coordinate system where Y is up
+        /// Thus positive rotations are those seen from the positive side of an axis going counter clockwise
+        /// 
+        /// Unity uses a left hand coordinate system where Y is up
+        /// Thus positive rotations are those seen from the positive side of an axis going clockwise
+        /// 
+        /// Thus we translate the values from SDL to be in line with the Unity standard
+        static void ReadGyro  (int controllerIndex, float x, float y, float z) => gyroReadings.  Enqueue(new ImuReading(controllerIndex, -x, -y, z));
 
-        static void ReadAccel (int controllerIndex, float x, float y, float z) => accelReadings.Enqueue (new ImuReading(controllerIndex, x, y, z));
+        static void ReadAccel (int controllerIndex, float x, float y, float z) => accelReadings. Enqueue(new ImuReading(controllerIndex,  x,  y, z));
 
         static void RefreshGamepadControls(InputDevice device, InputDeviceChange change)
         {
@@ -164,7 +169,6 @@ namespace MoreStories.GyroTools
 
                 for (int i = 0; i < gamepads.Count; i++)
                 {
-                    Debug.Log($"Added {gamepads[i].description.product} ({i}) to the list of gyro controllers {change}");
                     var gyro  = gamepads[i].TryGetChildControl<Vector3Control>("Gyroscope");
                     var accel = gamepads[i].TryGetChildControl<Vector3Control>("Accelerometer");
 

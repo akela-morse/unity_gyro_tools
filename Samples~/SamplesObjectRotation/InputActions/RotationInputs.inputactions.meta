@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 7000e8b56f27a6b22b6e8cf3c98ad953
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 8404be70184654265930450def6a9037, type: 3}
+  generateWrapperCode: 1
+  wrapperCodePath: Assets/EditableSamples/GyroTools/SamplesObjectRotation/InputActions/Classes/RotationInputs.cs
+  wrapperClassName: 
+  wrapperCodeNamespace: 

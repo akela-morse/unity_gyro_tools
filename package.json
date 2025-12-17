@@ -10,6 +10,13 @@
     "gyro",
     "accelerometer"
   ],
+  "samples": [
+        {
+            "displayName": "Object Gyro Rotation",
+            "description": "Sample scene where an object is rotated by a controller's gyro",
+            "path": "Samples~/SamplesObjectRotation"
+        }
+  ],
   "author": {
     "name": "Garret",
     "email": "garretmorestories@gmail.com",

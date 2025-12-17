@@ -1,0 +1,55 @@
+{
+    "version": 1,
+    "name": "RotationInputs",
+    "maps": [
+        {
+            "name": "Imu",
+            "id": "01bbc29b-da93-45b9-8c95-4b6381262128",
+            "actions": [
+                {
+                    "name": "Gyro",
+                    "type": "PassThrough",
+                    "id": "931cf6ad-6e87-4e86-a529-1522ef668930",
+                    "expectedControlType": "Vector3",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Accel",
+                    "type": "PassThrough",
+                    "id": "e57f1311-6f2f-42ec-bc0b-c4bc21558abf",
+                    "expectedControlType": "Vector3",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "725cb482-d644-4592-aca2-df318d6c7cec",
+                    "path": "<Gamepad>/Gyroscope",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Gyro",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f0700346-3f2e-4b30-8df7-8f99b93bbf8e",
+                    "path": "<Gamepad>/Accelerometer",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Accel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
