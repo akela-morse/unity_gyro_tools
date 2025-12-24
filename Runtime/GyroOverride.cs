@@ -3,28 +3,41 @@ using UnityEngine.InputSystem;
 using System.Runtime.InteropServices;
 using UnityEngine.InputSystem.Controls;
 using System.Collections.Concurrent;
+using AOT;
+using UnityEngine.InputSystem.LowLevel;
 
 namespace MoreStories.GyroTools
 {
-
-
     public static class GyroOverride
     {
 
         #region gyro_reader_methods
 
+#if UNITY_EDITOR_WIN
+        const string imu_library = "imu_reader";
+#else
         const string imu_library = "libimu_reader";
+#endif
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void ControllerSensorCallback(int controllerIndex, float x, float y, float z);
 
         [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
         private static extern void register_gyro_callback(ControllerSensorCallback callback);
+        
         [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
         private static extern void register_accel_callback(ControllerSensorCallback callback);
 
+        #region optional_polling_rate_methods
+
+        // These two methods can allow you to change the SDL's thread's polling rate for performance or compatibility reasons
         [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
         private static extern void change_polling_rate(float polling_rate);
+
+        [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void start_variable_rate_sdl_loop();
+
+        #endregion
 
         [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
         private static extern void start_sdl_loop();
@@ -84,7 +97,7 @@ namespace MoreStories.GyroTools
        
         #endregion
        
-        const float SdlPollingRate = 250f;
+        const float SdlPollingRateLimit = 250f;
         static MotionControls[] motionControls;
         static ConcurrentQueue<ImuReading> gyroReadings  = new ConcurrentQueue<ImuReading>(), 
                                            accelReadings = new ConcurrentQueue<ImuReading>();
@@ -100,7 +113,6 @@ namespace MoreStories.GyroTools
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void ImplementIMU()
         {
-
             RefreshGamepadControls(null, InputDeviceChange.Added);
             InputSystem.onDeviceChange -= RefreshGamepadControls;
             InputSystem.onDeviceChange += RefreshGamepadControls;
@@ -114,7 +126,6 @@ namespace MoreStories.GyroTools
             stop_sdl_loop  ();
             start_sdl_loop ();
 
-            change_polling_rate     (SdlPollingRate);
             register_gyro_callback  (ReadGyro);   
             register_accel_callback (ReadAccel);
 
@@ -132,11 +143,21 @@ namespace MoreStories.GyroTools
 
         static void DequeueImuValues(ImuType type, ref ImuReading imuReading)
         {
+           
             while(LoadImuReading(type, ref imuReading))
             {
                 if(motionControls?.Length > 0)
                 {
-                    InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
+                    //InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
+                    var pad = Gamepad.all[imuReading.controllerIndex];
+                    StateEvent.From(pad, out var eventPtr);
+                    
+
+                    motionControls[imuReading.controllerIndex][type].WriteValueIntoEvent(imuReading.value, eventPtr);
+
+                        // Queue event.
+                    InputSystem.QueueEvent(eventPtr);
+                    
                 }
             }
         }
@@ -156,8 +177,10 @@ namespace MoreStories.GyroTools
         /// Thus positive rotations are those seen from the positive side of an axis going clockwise
         /// 
         /// Thus we translate the values from SDL to be in line with the Unity standard
+        [MonoPInvokeCallback (typeof(ControllerSensorCallback))]
         static void ReadGyro  (int controllerIndex, float x, float y, float z) => gyroReadings.  Enqueue(new ImuReading(controllerIndex, -x, -y, z));
 
+        [MonoPInvokeCallback (typeof(ControllerSensorCallback))]
         static void ReadAccel (int controllerIndex, float x, float y, float z) => accelReadings. Enqueue(new ImuReading(controllerIndex,  x,  y, z));
 
         static void RefreshGamepadControls(InputDevice device, InputDeviceChange change)
