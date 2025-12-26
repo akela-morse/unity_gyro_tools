@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.InputSystem;
@@ -13,7 +14,7 @@ namespace MoreStories.GyroTools.Editor
         ""name"": ""GamepadWithIMU"",
         ""extend"": ""Gamepad"",
         ""controls"": [
-        {""name"": ""Gyroscope"", ""layout"": ""Vector3"", ""synthetic"": true },
+        {""name"": ""Gyroscope"",     ""layout"": ""Vector3"", ""synthetic"": true, ""offset"": ""64"" },
         {""name"": ""Accelerometer"", ""layout"": ""Vector3"", ""synthetic"": true }
         ]
         }";
@@ -24,4 +25,4 @@ namespace MoreStories.GyroTools.Editor
         }
     }
 }
-    
+#endif

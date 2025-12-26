@@ -13,9 +13,9 @@ namespace MoreStories.GyroTools
 
         #region gyro_reader_methods
 
-#if UNITY_EDITOR_WIN
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
         const string imu_library = "imu_reader";
-#else
+#elif UNITY_EDITOR_LINUX || UNITY_STANDALONE_LINUX
         const string imu_library = "libimu_reader";
 #endif
 
@@ -52,6 +52,8 @@ namespace MoreStories.GyroTools
         struct MotionControls
         {
             Vector3Control[] imus;
+            public Gamepad owner {get; private set;}
+
             public Vector3Control gyroscope     => this[ImuType.Gyroscope];
             public Vector3Control accelerometer => this[ImuType.Accelerometer];
 
@@ -61,8 +63,9 @@ namespace MoreStories.GyroTools
                 private set => imus[(int)type] = value;
             } 
 
-            public MotionControls(Vector3Control gyroscope, Vector3Control accelerometer)
+            public MotionControls(Gamepad owner, Vector3Control gyroscope, Vector3Control accelerometer)
             {
+                this.owner = owner;
                 imus = new Vector3Control[(int)ImuType.Count];
 
                 this[ImuType.Gyroscope]     = gyroscope;
@@ -148,16 +151,16 @@ namespace MoreStories.GyroTools
             {
                 if(motionControls?.Length > 0)
                 {
-                    //InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
-                    var pad = Gamepad.all[imuReading.controllerIndex];
-                    StateEvent.From(pad, out var eventPtr);
-                    
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
 
+                    StateEvent.From(motionControls[imuReading.controllerIndex].owner, out var eventPtr);
                     motionControls[imuReading.controllerIndex][type].WriteValueIntoEvent(imuReading.value, eventPtr);
-
-                        // Queue event.
                     InputSystem.QueueEvent(eventPtr);
-                    
+
+#elif UNITY_EDITOR_LINUX || UNITY_STANDALONE_LINUX
+                           
+                    InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
+#endif                 
                 }
             }
         }
@@ -200,7 +203,7 @@ namespace MoreStories.GyroTools
                         Debug.LogError("Motion sensor controls are missing from Input set, check if layout override is working properly");
                         return;
                     }
-                    motionControls[i] = new MotionControls(gyro, accel);
+                    motionControls[i] = new MotionControls(gamepads[i], gyro, accel);
                 }
             }
             

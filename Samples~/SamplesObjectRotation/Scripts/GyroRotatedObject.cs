@@ -1,43 +1,14 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Assertions;
+using System.Collections;
 
 public class GyroRotatedObject : MonoBehaviour
 {
+    const float InputUpdateDelayMS = 0.001f;
     RotationInputs rotationInputs;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        rotationInputs = new RotationInputs();
-        rotationInputs.Imu.Enable();
-        rotationInputs.Imu.Gyro.performed += GyroToRotation;
-        
-    }
 
-    void GyroToRotation(InputAction.CallbackContext context) => GyroToRotation(SafelyReadCallbackValue<Vector3>(context));
-
-    void GyroToRotation(Vector3 gyroscope)
-    {
-        if(Mathf.Abs(gyroscope.x) > 0.01f && Mathf.Abs(gyroscope.y) > 0.01f)
-        {
-            /// According to the SDL wiki SDL uses a right hand coordinate system where Y is up
-            /// Thus positive rotations are those seen from the positive side of an axis going counter clockwise
-            /// 
-            /// Unity uses a left hand coordinate system where Y is up
-            /// Thus positive rotations are those seen from the positive side of an axis going clockwise
-            /// 
-            /// Thus we translate the values from SDL to be in line with the Unity standard
-
-            //gyroscope.x *= -1;
-            //gyroscope.y *= -1;
-
-           
-            gameObject.transform.Rotate(gyroscope);
-
-        }
-        
-    }
-
+    #region Input Action Syntatic Sugar
     /// <summary>
     /// Method to bypass potential type unsafety when using input action callbacks
     /// </summary>
@@ -54,4 +25,47 @@ public class GyroRotatedObject : MonoBehaviour
 
         return context.ReadValue<T>();
     }
+    void GyroToRotation(InputAction.CallbackContext context) => GyroToRotation(SafelyReadCallbackValue<Vector3>(context));
+
+    #endregion
+
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    void Start()
+    {
+        rotationInputs = new RotationInputs();
+        rotationInputs.Imu.Enable();
+        rotationInputs.Imu.Gyro.performed += GyroToRotation;
+
+        InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsManually;
+        
+        StartCoroutine(UpdateInputSystem(new WaitForSeconds(InputUpdateDelayMS)));
+
+        Application.quitting += OnQuit;
+        
+    }
+
+    IEnumerator UpdateInputSystem(WaitForSeconds delay)
+    {
+        while(true)
+        {  
+            InputSystem.Update();       
+            yield return delay;
+        }
+    }
+
+    void OnQuit()
+    {
+        InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsInDynamicUpdate;
+    }
+
+
+
+    void GyroToRotation(Vector3 gyroscope)
+    {
+        if(Mathf.Abs(gyroscope.x) > 0.01f && Mathf.Abs(gyroscope.y) > 0.01f) 
+            gameObject.transform.Rotate(gyroscope * Mathf.Rad2Deg * Time.deltaTime);
+    }
+
+    
+
 }
