@@ -1,8 +1,9 @@
+#if UNITY_EDITOR
 using System.Collections;
 using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.TestTools; // Required for UnityTest and LogAssert
-using UnityEditor; // Required for Editor-specific functionality
+using UnityEngine.TestTools;
+using UnityEditor; 
 using System.Runtime.InteropServices;
 
 namespace MoreStories.GyroTools.Editor.Tests
@@ -25,3 +26,4 @@ namespace MoreStories.GyroTools.Editor.Tests
         }
     }
 }
+#endif
