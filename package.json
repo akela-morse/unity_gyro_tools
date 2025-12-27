@@ -23,6 +23,7 @@
     "url": "https://www.unity3d.com"
   },
   "dependencies": {
-    "com.unity.inputsystem": "1.14.2"
+    "com.unity.inputsystem": "1.14.2",
+    "com.unity.ext.nunit": "2.0.5"
   }
 }
