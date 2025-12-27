@@ -1,6 +1,6 @@
 {
   "name": "com.morestories.unity_gyro_tools",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "displayName": "GyroTools",
   "description": "A set of scripts to help with the addition of gyro in Unity games",
   "unity": "2022.3",
@@ -11,15 +11,18 @@
     "accelerometer"
   ],
   "samples": [
-        {
-            "displayName": "Object Gyro Rotation",
-            "description": "Sample scene where an object is rotated by a controller's gyro",
-            "path": "Samples~/SamplesObjectRotation"
-        }
+    {
+      "displayName": "Object Gyro Rotation",
+      "description": "Sample scene where an object is rotated by a controller's gyro",
+      "path": "Samples~/SamplesObjectRotation"
+    }
   ],
   "author": {
     "name": "Garret",
     "email": "garretmorestories@gmail.com",
     "url": "https://www.unity3d.com"
+  },
+  "dependencies": {
+    "com.unity.inputsystem": "1.14.2"
   }
 }
