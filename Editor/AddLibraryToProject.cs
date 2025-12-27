@@ -13,14 +13,15 @@ namespace MoreStories.GyroTools.Editor
     {
         const string PluginsLocations = "Packages/unity_gyro_tools/Runtime/Plugins";
         const string ProjectPlugins   = "Assets/Plugins";
-        static AddLibraryToProject()
-        {
-           string source      = Path.Combine(Directory.GetCurrentDirectory(), PluginsLocations);
-           string destination = Path.Combine(Directory.GetCurrentDirectory(), ProjectPlugins  );
+        static AddLibraryToProject() =>
 
-           CopyAllFromTo(PluginsLocations, ProjectPlugins);
+            CopyAllFromTo(Directory.Exists(PluginsLocations) ? 
+                            PluginsLocations : 
+                            UnityEditor.PackageManager.PackageInfo.FindForAssembly(
+                                typeof(AddLibraryToProject).Assembly).resolvedPath.
+                                Replace(Directory.GetCurrentDirectory() + "/",""), 
+                          ProjectPlugins);
 
-        }
 
         static void CopyAllFromTo(string sourceDirectory, string destinationDirectory)
         {
@@ -43,7 +44,7 @@ namespace MoreStories.GyroTools.Editor
                 }
                 
             }
-            AssetDatabase.Refresh    ();
+            AssetDatabase.Refresh();
         }
     }
 }
