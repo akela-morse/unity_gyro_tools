@@ -19,7 +19,7 @@ namespace MoreStories.GyroTools.Editor
                             PluginsLocations : 
                             UnityEditor.PackageManager.PackageInfo.FindForAssembly(
                                 typeof(AddLibraryToProject).Assembly).resolvedPath.
-                                Replace(Directory.GetCurrentDirectory() + "/",""), 
+                                Replace(Directory.GetCurrentDirectory() + "/","") + "/Runtime/Plugins", 
                           ProjectPlugins);
 
 
