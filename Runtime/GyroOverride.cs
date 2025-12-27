@@ -99,8 +99,17 @@ namespace MoreStories.GyroTools
         }
        
         #endregion
-       
-        const float SdlPollingRateLimit = 250f;
+
+
+        const string GamepadWithIMUOverride = @"{
+        ""name"": ""GamepadWithIMU"",
+        ""extend"": ""Gamepad"",
+        ""controls"": [
+        {""name"": ""Gyroscope"",     ""layout"": ""Vector3"", ""synthetic"": true, ""offset"": ""64"" },
+        {""name"": ""Accelerometer"", ""layout"": ""Vector3"", ""synthetic"": true }
+        ]
+        }";
+
         static MotionControls[] motionControls;
         static ConcurrentQueue<ImuReading> gyroReadings  = new ConcurrentQueue<ImuReading>(), 
                                            accelReadings = new ConcurrentQueue<ImuReading>();
@@ -113,9 +122,19 @@ namespace MoreStories.GyroTools
              _ => false
         };
 
+#if UNITY_EDITOR
+        [UnityEditor.InitializeOnLoadMethod]
+        static void AddImuOverride() => InputSystem.RegisterLayoutOverride(GamepadWithIMUOverride);
+#endif
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void ImplementIMU()
         {
+
+#if UNITY_STANDALONE
+            InputSystem.RegisterLayoutOverride(GamepadWithIMUOverride);
+#endif
+
             RefreshGamepadControls(null, InputDeviceChange.Added);
             InputSystem.onDeviceChange -= RefreshGamepadControls;
             InputSystem.onDeviceChange += RefreshGamepadControls;
