@@ -140,12 +140,11 @@ namespace MoreStories.GyroTools
             InputSystem.onDeviceChange += RefreshGamepadControls;
 
             // For optimal motion sensor performance and hardware compatibility
-            // It is recommended to change the Input System's update rate by updating it manually
+            // It might be optimal to change the Input System's update rate by updating it manually
             // Otherwise it just runs as quickly as it can which might not be what is desired
             InputSystem.onBeforeUpdate -= FeedImuValues;
             InputSystem.onBeforeUpdate += FeedImuValues;
 
-            stop_sdl_loop  ();
             start_sdl_loop ();
 
             register_gyro_callback  (ReadGyro);   
@@ -168,19 +167,16 @@ namespace MoreStories.GyroTools
            
             while(LoadImuReading(type, ref imuReading))
             {
-                if(motionControls?.Length > 0)
-                {
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
 
-                    StateEvent.From(motionControls[imuReading.controllerIndex].owner, out var eventPtr);
-                    motionControls[imuReading.controllerIndex][type].WriteValueIntoEvent(imuReading.value, eventPtr);
-                    InputSystem.QueueEvent(eventPtr);
+                StateEvent.From(motionControls[imuReading.controllerIndex].owner, out var eventPtr);
+                motionControls[imuReading.controllerIndex][type].WriteValueIntoEvent(imuReading.value, eventPtr);
+                InputSystem.QueueEvent(eventPtr);
 
 #elif UNITY_EDITOR_LINUX || UNITY_STANDALONE_LINUX
                            
-                    InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
+                InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
 #endif                 
-                }
             }
         }
 
