@@ -47,6 +47,8 @@ public class GyroRotatedObject : MonoBehaviour
     {
         rotationInputs = new RotationInputs();
         rotationInputs.Imu.Enable();
+        
+        rotationInputs.Imu.Quit.performed += (x) => Application.Quit();
         RegisterInputCallback(rotationInputs.Imu.Gyro, GyroToRotation);
 
         InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsManually;

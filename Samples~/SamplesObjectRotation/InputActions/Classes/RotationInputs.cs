@@ -109,6 +109,15 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Quit"",
+                    ""type"": ""Button"",
+                    ""id"": ""f97fcbd8-68a9-4c5a-a13d-851347252f39"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -133,6 +142,28 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
                     ""action"": ""Accel"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""661c14ff-b8bb-4162-ab58-48d885c1113e"",
+                    ""path"": ""<Keyboard>/escape"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Quit"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""fd5debd7-a021-4adb-8e33-90d2ec6c561b"",
+                    ""path"": ""<Gamepad>/select"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Quit"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -143,6 +174,7 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
         m_Imu = asset.FindActionMap("Imu", throwIfNotFound: true);
         m_Imu_Gyro = m_Imu.FindAction("Gyro", throwIfNotFound: true);
         m_Imu_Accel = m_Imu.FindAction("Accel", throwIfNotFound: true);
+        m_Imu_Quit = m_Imu.FindAction("Quit", throwIfNotFound: true);
     }
 
     ~@RotationInputs()
@@ -225,6 +257,7 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
     private List<IImuActions> m_ImuActionsCallbackInterfaces = new List<IImuActions>();
     private readonly InputAction m_Imu_Gyro;
     private readonly InputAction m_Imu_Accel;
+    private readonly InputAction m_Imu_Quit;
     /// <summary>
     /// Provides access to input actions defined in input action map "Imu".
     /// </summary>
@@ -244,6 +277,10 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Imu/Accel".
         /// </summary>
         public InputAction @Accel => m_Wrapper.m_Imu_Accel;
+        /// <summary>
+        /// Provides access to the underlying input action "Imu/Quit".
+        /// </summary>
+        public InputAction @Quit => m_Wrapper.m_Imu_Quit;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -276,6 +313,9 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
             @Accel.started += instance.OnAccel;
             @Accel.performed += instance.OnAccel;
             @Accel.canceled += instance.OnAccel;
+            @Quit.started += instance.OnQuit;
+            @Quit.performed += instance.OnQuit;
+            @Quit.canceled += instance.OnQuit;
         }
 
         /// <summary>
@@ -293,6 +333,9 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
             @Accel.started -= instance.OnAccel;
             @Accel.performed -= instance.OnAccel;
             @Accel.canceled -= instance.OnAccel;
+            @Quit.started -= instance.OnQuit;
+            @Quit.performed -= instance.OnQuit;
+            @Quit.canceled -= instance.OnQuit;
         }
 
         /// <summary>
@@ -347,5 +390,12 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnAccel(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Quit" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuit(InputAction.CallbackContext context);
     }
 }
