@@ -1,5 +1,7 @@
 # Unity Gyro Tools (Alpha)
-A work in progress unity package that aims to make the implementation of gyroscopic and accelerometer controls be as seamless as possible with the [Unity Input System](https://github.com/Unity-Technologies/InputSystem). Utilizes [SDL3](https://github.com/libsdl-org/SDL) to read IMU's from compatible controllers.
+A work in progress unity package that aims to make the implementation of gyroscopic and accelerometer controls be as seamless as possible with the [Unity Input System](https://github.com/Unity-Technologies/InputSystem). Utilizes [SDL3](https://github.com/libsdl-org/SDL) to read IMUs from compatible controllers.
+
+The library utilized to make this implementation possible is built with this [small project](https://github.com/garret-more-stories/imu_reader).
 
 This package is currently compatible with both Windows and Linux.
 
