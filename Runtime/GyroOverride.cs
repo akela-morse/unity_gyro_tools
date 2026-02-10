@@ -5,7 +5,9 @@ using UnityEngine.InputSystem.Controls;
 using System.Collections.Concurrent;
 using AOT;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.Scripting;
 
+[assembly : AlwaysLinkAssembly]
 namespace MoreStories.GyroTools
 {
     public static class GyroOverride
