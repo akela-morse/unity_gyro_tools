@@ -107,8 +107,9 @@ namespace MoreStories.GyroTools
         ""name"": ""GamepadWithIMU"",
         ""extend"": ""Gamepad"",
         ""controls"": [
-        {""name"": ""Gyroscope"",     ""layout"": ""Vector3"", ""synthetic"": true, ""offset"": ""64"" },
-        {""name"": ""Accelerometer"", ""layout"": ""Vector3"", ""synthetic"": true }
+        {""name"": ""IMU"",       ""layout"": ""IMU"",     ""synthetic"": true, ""offset"": ""64"" },
+        {""name"": ""IMU/gyro"",  ""layout"": ""Vector3"", ""synthetic"": true },
+        {""name"": ""IMU/accel"", ""layout"": ""Vector3"", ""synthetic"": true }
         ]
         }";
 
@@ -124,9 +125,15 @@ namespace MoreStories.GyroTools
              _ => false
         };
 
+        static void AddNewIMULayout()
+        {
+            InputSystem.RegisterLayout<IMUControl>("IMU");
+            InputSystem.RegisterLayoutOverride(GamepadWithIMUOverride);
+        }
+
 #if UNITY_EDITOR
         [UnityEditor.InitializeOnLoadMethod]
-        static void AddImuOverride() => InputSystem.RegisterLayoutOverride(GamepadWithIMUOverride);
+        static void AddImuOverride() => AddNewIMULayout();
 #endif
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -134,7 +141,7 @@ namespace MoreStories.GyroTools
         {
 
 #if UNITY_STANDALONE
-            InputSystem.RegisterLayoutOverride(GamepadWithIMUOverride);
+            AddNewIMULayout();
 #endif
 
             RefreshGamepadControls(null, InputDeviceChange.Added);
@@ -212,8 +219,8 @@ namespace MoreStories.GyroTools
 
                 for (int i = 0; i < gamepads.Count; i++)
                 {
-                    var gyro  = gamepads[i].TryGetChildControl<Vector3Control>("Gyroscope");
-                    var accel = gamepads[i].TryGetChildControl<Vector3Control>("Accelerometer");
+                    var gyro  = gamepads[i].TryGetChildControl<Vector3Control>("IMU/gyro");
+                    var accel = gamepads[i].TryGetChildControl<Vector3Control>("IMU/accel");
 
                     if (gyro == null || accel == null)
                     {
