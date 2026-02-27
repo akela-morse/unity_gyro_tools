@@ -9,10 +9,10 @@ namespace MoreStories.GyroTools
     {
         public FourCC format => new FourCC('I', 'M', 'U', 'S');
 
-        [InputControl(name = "accel", layout = "Vector3", usage = "Acceleration", displayName = "Accelerometer")]
+        [InputControl(name = "accel", layout = "Vector3", usage = "Acceleration",    displayName = "Accelerometer")]
         public Vector3 acceleration;
 
-        [InputControl(name = "gyro", layout = "Vector3", usage = "AngularVelocity", displayName = "Gyroscope")]
+        [InputControl(name = "gyro",  layout = "Vector3", usage = "AngularVelocity", displayName = "Gyroscope")]
         public Vector3 gyroscope;
     }
 }

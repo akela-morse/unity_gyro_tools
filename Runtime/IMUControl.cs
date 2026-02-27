@@ -8,10 +8,10 @@ namespace MoreStories.GyroTools
     [InputControlLayout(stateType = typeof(IMUState))]
     public class IMUControl : InputControl<IMUState>
     {
-        [InputControl(name = "accel", layout = "Vector3", usage = "Acceleration", displayName = "Accelerometer")]
+        [InputControl(name = "accel", layout = "Vector3", usage = "Acceleration",    displayName = "Accelerometer")]
         public Vector3Control accel { get; private set; }
 
-        [InputControl(name = "gyro", layout = "Vector3", usage = "AngularVelocity", displayName = "Gyroscope")]
+        [InputControl(name = "gyro",  layout = "Vector3", usage = "AngularVelocity", displayName = "Gyroscope")]
         public Vector3Control gyro  { get; private set; }
 
         protected override void FinishSetup()

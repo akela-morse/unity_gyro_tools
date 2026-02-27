@@ -6,6 +6,9 @@ using System.Collections.Concurrent;
 using AOT;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.Scripting;
+using System.Text;
+using Unity.Plastic.Newtonsoft.Json;
+
 
 [assembly : AlwaysLinkAssembly]
 namespace MoreStories.GyroTools
@@ -29,6 +32,9 @@ namespace MoreStories.GyroTools
         
         [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
         private static extern void register_accel_callback(ControllerSensorCallback callback);
+
+        [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool set_controller_imu_state(int controller_index, bool is_enabled);
 
         #region optional_polling_rate_methods
 
@@ -102,17 +108,42 @@ namespace MoreStories.GyroTools
        
         #endregion
 
+        public const string DS4HIDLayoutName = "Dualshock4GamepadHID";
+        public const string IMUControlPath   = "IMU";
+        public const string GyroControlPath  = IMUControlPath + "/gyro";
+        public const string AccelControlPath = IMUControlPath + "/accel";
 
-        const string GamepadWithIMUOverride = @"{
-        ""name"": ""GamepadWithIMU"",
-        ""extend"": ""Gamepad"",
-        ""controls"": [
-        {""name"": ""IMU"",       ""layout"": ""IMU"",     ""synthetic"": true, ""offset"": ""64"" },
-        {""name"": ""IMU/gyro"",  ""layout"": ""Vector3"", ""synthetic"": true },
-        {""name"": ""IMU/accel"", ""layout"": ""Vector3"", ""synthetic"": true }
-        ]
-        }";
+        static object GamepadWithIMUOverride = new
+        {
+            name = "GamepadWithIMU",
+            extend = "Gamepad",
+            controls = new object[]
+            {
+                new { name = IMUControlPath,   layout = IMUControlPath, synthetic = true, offset = 64 }, //Large offset so that it doesn't conflict with HID values
+                new { name = GyroControlPath,  layout = "Vector3",      synthetic = true },
+                new { name = AccelControlPath, layout = "Vector3",      synthetic = true }
+            }
+        };
 
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+        static object Dualshock4HIDOverride = new
+        {
+            name = "Dualshock4GamepadHIDCustom",
+            extend = DS4HIDLayoutName,
+            controls = new object[]
+            {
+                new { name = IMUControlPath,   layout = IMUControlPath }, 
+                new { name = GyroControlPath,  format = "VC3S", layout = "Vector3", offset = 13, processors = "ScaleVector3(x=-8,  y=-8,  z=8)"  },
+                    new { name = GyroControlPath + "/x",  format = "SHRT", offset = 0},
+                    new { name = GyroControlPath + "/y",  format = "SHRT", offset = 2},
+                    new { name = GyroControlPath + "/z",  format = "SHRT", offset = 4},
+                new { name = AccelControlPath, format = "VC3S", layout = "Vector3", offset = 19, processors = "ScaleVector3(x=-38, y=-38, z=38)" },
+                    new { name = AccelControlPath + "/x",  format = "SHRT", offset = 0},
+                    new { name = AccelControlPath + "/y",  format = "SHRT", offset = 2},
+                    new { name = AccelControlPath + "/z",  format = "SHRT", offset = 4}
+            }
+        };
+#endif
         static MotionControls[] motionControls;
         static ConcurrentQueue<ImuReading> gyroReadings  = new ConcurrentQueue<ImuReading>(), 
                                            accelReadings = new ConcurrentQueue<ImuReading>();
@@ -127,8 +158,11 @@ namespace MoreStories.GyroTools
 
         static void AddNewIMULayout()
         {
-            InputSystem.RegisterLayout<IMUControl>("IMU");
-            InputSystem.RegisterLayoutOverride(GamepadWithIMUOverride);
+            InputSystem.RegisterLayout<IMUControl>(IMUControlPath);
+            InputSystem.RegisterLayoutOverride(JsonConvert.SerializeObject(GamepadWithIMUOverride));
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+            InputSystem.RegisterLayoutOverride(JsonConvert.SerializeObject(Dualshock4HIDOverride));
+#endif
         }
 
 #if UNITY_EDITOR
@@ -219,8 +253,13 @@ namespace MoreStories.GyroTools
 
                 for (int i = 0; i < gamepads.Count; i++)
                 {
-                    var gyro  = gamepads[i].TryGetChildControl<Vector3Control>("IMU/gyro");
-                    var accel = gamepads[i].TryGetChildControl<Vector3Control>("IMU/accel");
+                    if(gamepads[i].layout == "Dualshock4GamepadHID")
+                    {
+                        set_controller_imu_state(i, false);
+                        continue;
+                    } 
+                    var gyro  = gamepads[i].TryGetChildControl<Vector3Control>(GyroControlPath);
+                    var accel = gamepads[i].TryGetChildControl<Vector3Control>(AccelControlPath);
 
                     if (gyro == null || accel == null)
                     {
