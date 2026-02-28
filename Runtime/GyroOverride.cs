@@ -1,18 +1,21 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System.Text;
 using UnityEngine.InputSystem.Controls;
 using System.Collections.Concurrent;
 using AOT;
-using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.Scripting;
-using System.Text;
-using Unity.Plastic.Newtonsoft.Json;
+using UnityEngine.PlayerLoop;
+using UnityEngine.LowLevel;
+using Newtonsoft.Json;
 
 
 [assembly : AlwaysLinkAssembly]
 namespace MoreStories.GyroTools
 {
+    public class MotionSensorUpdate { }
     public static class GyroOverride
     {
 
@@ -35,17 +38,6 @@ namespace MoreStories.GyroTools
 
         [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool set_controller_imu_state(int controller_index, bool is_enabled);
-
-        #region optional_polling_rate_methods
-
-        // These two methods can allow you to change the SDL's thread's polling rate for performance or compatibility reasons
-        [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void change_polling_rate(float polling_rate);
-
-        [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void start_variable_rate_sdl_loop();
-
-        #endregion
 
         [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
         private static extern void start_sdl_loop();
@@ -125,6 +117,7 @@ namespace MoreStories.GyroTools
             }
         };
 
+// Temporary Measure to combat current glitch where DS4 controllers won't accept layout override inputs externally
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
         static object Dualshock4HIDOverride = new
         {
@@ -156,6 +149,55 @@ namespace MoreStories.GyroTools
              _ => false
         };
 
+        private static void AddingMotionSensorEarlyUpdate()
+        {
+            // Retrieve the default Player loop system. Get the current loop instead if the default was already modified previously.
+            var defaultLoop = PlayerLoop.GetDefaultPlayerLoop();
+
+            // Create a custom update system
+            var myCustomUpdate = new PlayerLoopSystem
+            {
+                subSystemList = null,
+                updateDelegate = FeedImuValues,
+                type = typeof(MotionSensorUpdate)
+            };
+          
+            // Add the custom update system after the EarlyUpdate phase in the Player Loop
+            var loopWithCustomUpdate = InsertSystemAfter<EarlyUpdate>(in defaultLoop, myCustomUpdate);
+            PlayerLoop.SetPlayerLoop(loopWithCustomUpdate);
+        }
+
+        private static PlayerLoopSystem InsertSystemAfter<T>(in PlayerLoopSystem loopSystem, PlayerLoopSystem newSystem) where T : struct
+        {
+            // Create a new root PlayerLoopSystem
+            PlayerLoopSystem newPlayerLoop = new()
+            {
+                loopConditionFunction = loopSystem.loopConditionFunction,
+                type = loopSystem.type,
+                updateDelegate = loopSystem.updateDelegate,
+                updateFunction = loopSystem.updateFunction
+            };
+            // Create a new list to populate with subsystems, including the custom system
+            List<PlayerLoopSystem> newSubSystemList = new();
+
+            //Iterate through the subsystems in the existing loop we passed in and add them to the new list
+            if (loopSystem.subSystemList != null)
+            {
+                for (var i = 0; i < loopSystem.subSystemList.Length; i++)
+                {
+                    newSubSystemList.Add(loopSystem.subSystemList[i]);
+                    // If the previously added subsystem is of the type to add after, add the custom system
+                    if (loopSystem.subSystemList[i].type == typeof(T))
+                    {
+                        newSubSystemList.Add(newSystem);
+                    }
+                }
+            }
+
+            newPlayerLoop.subSystemList = newSubSystemList.ToArray();
+            return newPlayerLoop;
+        }
+
         static void AddNewIMULayout()
         {
             InputSystem.RegisterLayout<IMUControl>(IMUControlPath);
@@ -182,11 +224,7 @@ namespace MoreStories.GyroTools
             InputSystem.onDeviceChange -= RefreshGamepadControls;
             InputSystem.onDeviceChange += RefreshGamepadControls;
 
-            // For optimal motion sensor performance and hardware compatibility
-            // It might be optimal to change the Input System's update rate by updating it manually
-            // Otherwise it just runs as quickly as it can which might not be what is desired
-            InputSystem.onBeforeUpdate -= FeedImuValues;
-            InputSystem.onBeforeUpdate += FeedImuValues;
+            AddingMotionSensorEarlyUpdate();
 
             start_sdl_loop ();
 
@@ -210,16 +248,7 @@ namespace MoreStories.GyroTools
            
             while(LoadImuReading(type, ref imuReading))
             {
-#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-
-                StateEvent.From(motionControls[imuReading.controllerIndex].owner, out var eventPtr);
-                motionControls[imuReading.controllerIndex][type].WriteValueIntoEvent(imuReading.value, eventPtr);
-                InputSystem.QueueEvent(eventPtr);
-
-#elif UNITY_EDITOR_LINUX || UNITY_STANDALONE_LINUX
-                           
-                InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
-#endif                 
+                InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);    
             }
         }
 
@@ -227,7 +256,6 @@ namespace MoreStories.GyroTools
         {
             stop_sdl_loop();
             InputSystem.onDeviceChange -= RefreshGamepadControls;
-            InputSystem.onBeforeUpdate -= FeedImuValues;
 
         }
         
@@ -253,6 +281,7 @@ namespace MoreStories.GyroTools
 
                 for (int i = 0; i < gamepads.Count; i++)
                 {
+                    // Temporarily ignore dualshock 4 until bug is fixed
                     if(gamepads[i].layout == "Dualshock4GamepadHID")
                     {
                         set_controller_imu_state(i, false);

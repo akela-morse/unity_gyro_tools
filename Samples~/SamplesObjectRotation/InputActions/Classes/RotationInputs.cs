@@ -93,19 +93,10 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
             ""id"": ""01bbc29b-da93-45b9-8c95-4b6381262128"",
             ""actions"": [
                 {
-                    ""name"": ""Gyro"",
+                    ""name"": ""Motion"",
                     ""type"": ""PassThrough"",
                     ""id"": ""931cf6ad-6e87-4e86-a529-1522ef668930"",
-                    ""expectedControlType"": ""Vector3"",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""Accel"",
-                    ""type"": ""PassThrough"",
-                    ""id"": ""e57f1311-6f2f-42ec-bc0b-c4bc21558abf"",
-                    ""expectedControlType"": ""Vector3"",
+                    ""expectedControlType"": ""IMU"",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
@@ -124,22 +115,11 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""725cb482-d644-4592-aca2-df318d6c7cec"",
-                    ""path"": ""<Gamepad>/Gyroscope"",
+                    ""path"": ""<Gamepad>/IMU"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Gyro"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""f0700346-3f2e-4b30-8df7-8f99b93bbf8e"",
-                    ""path"": ""<Gamepad>/Accelerometer"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Accel"",
+                    ""action"": ""Motion"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -172,8 +152,7 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
 }");
         // Imu
         m_Imu = asset.FindActionMap("Imu", throwIfNotFound: true);
-        m_Imu_Gyro = m_Imu.FindAction("Gyro", throwIfNotFound: true);
-        m_Imu_Accel = m_Imu.FindAction("Accel", throwIfNotFound: true);
+        m_Imu_Motion = m_Imu.FindAction("Motion", throwIfNotFound: true);
         m_Imu_Quit = m_Imu.FindAction("Quit", throwIfNotFound: true);
     }
 
@@ -255,8 +234,7 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
     // Imu
     private readonly InputActionMap m_Imu;
     private List<IImuActions> m_ImuActionsCallbackInterfaces = new List<IImuActions>();
-    private readonly InputAction m_Imu_Gyro;
-    private readonly InputAction m_Imu_Accel;
+    private readonly InputAction m_Imu_Motion;
     private readonly InputAction m_Imu_Quit;
     /// <summary>
     /// Provides access to input actions defined in input action map "Imu".
@@ -270,13 +248,9 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
         /// </summary>
         public ImuActions(@RotationInputs wrapper) { m_Wrapper = wrapper; }
         /// <summary>
-        /// Provides access to the underlying input action "Imu/Gyro".
+        /// Provides access to the underlying input action "Imu/Motion".
         /// </summary>
-        public InputAction @Gyro => m_Wrapper.m_Imu_Gyro;
-        /// <summary>
-        /// Provides access to the underlying input action "Imu/Accel".
-        /// </summary>
-        public InputAction @Accel => m_Wrapper.m_Imu_Accel;
+        public InputAction @Motion => m_Wrapper.m_Imu_Motion;
         /// <summary>
         /// Provides access to the underlying input action "Imu/Quit".
         /// </summary>
@@ -307,12 +281,9 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
         {
             if (instance == null || m_Wrapper.m_ImuActionsCallbackInterfaces.Contains(instance)) return;
             m_Wrapper.m_ImuActionsCallbackInterfaces.Add(instance);
-            @Gyro.started += instance.OnGyro;
-            @Gyro.performed += instance.OnGyro;
-            @Gyro.canceled += instance.OnGyro;
-            @Accel.started += instance.OnAccel;
-            @Accel.performed += instance.OnAccel;
-            @Accel.canceled += instance.OnAccel;
+            @Motion.started += instance.OnMotion;
+            @Motion.performed += instance.OnMotion;
+            @Motion.canceled += instance.OnMotion;
             @Quit.started += instance.OnQuit;
             @Quit.performed += instance.OnQuit;
             @Quit.canceled += instance.OnQuit;
@@ -327,12 +298,9 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
         /// <seealso cref="ImuActions" />
         private void UnregisterCallbacks(IImuActions instance)
         {
-            @Gyro.started -= instance.OnGyro;
-            @Gyro.performed -= instance.OnGyro;
-            @Gyro.canceled -= instance.OnGyro;
-            @Accel.started -= instance.OnAccel;
-            @Accel.performed -= instance.OnAccel;
-            @Accel.canceled -= instance.OnAccel;
+            @Motion.started -= instance.OnMotion;
+            @Motion.performed -= instance.OnMotion;
+            @Motion.canceled -= instance.OnMotion;
             @Quit.started -= instance.OnQuit;
             @Quit.performed -= instance.OnQuit;
             @Quit.canceled -= instance.OnQuit;
@@ -377,19 +345,12 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
     public interface IImuActions
     {
         /// <summary>
-        /// Method invoked when associated input action "Gyro" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "Motion" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnGyro(InputAction.CallbackContext context);
-        /// <summary>
-        /// Method invoked when associated input action "Accel" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-        /// </summary>
-        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnAccel(InputAction.CallbackContext context);
+        void OnMotion(InputAction.CallbackContext context);
         /// <summary>
         /// Method invoked when associated input action "Quit" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>

@@ -4,10 +4,10 @@ using UnityEngine.Assertions;
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using MoreStories.GyroTools;
 
 public class GyroRotatedObject : MonoBehaviour
 {
-    const float InputUpdateDelayMS = 0.001f;
     RotationInputs rotationInputs;
 
     #region Input Action Helpers
@@ -45,45 +45,26 @@ public class GyroRotatedObject : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        //var a = GyroOverride.hil;
         rotationInputs = new RotationInputs();
         rotationInputs.Imu.Enable();
         
         rotationInputs.Imu.Quit.performed += (x) => Application.Quit();
-        RegisterInputCallback(rotationInputs.Imu.Gyro, GyroToRotation);
-
-        InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsManually;
+        RegisterInputCallback(rotationInputs.Imu.Motion, GyroToRotation);
         
-        StartCoroutine(UpdateInputSystem(new WaitForSeconds(InputUpdateDelayMS)));
-        Application.quitting += OnQuit;
-        
-    }
-
-    IEnumerator UpdateInputSystem(WaitForSeconds delay)
-    {
-        while(true)
-        {  
-            InputSystem.Update();       
-            yield return delay;
-        }
-    }
-
-    void OnQuit()
-    {
-        InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsInDynamicUpdate;
     }
 
 
 
     void GyroToRotation(InputAction.CallbackContext context)
     {
-        Vector3 gyroscope = SafelyReadCallbackValue<Vector3>(context);
+        IMUState imu = SafelyReadCallbackValue<IMUState>(context);
         
-        if(Mathf.Abs(gyroscope.x) > 0.01f && Mathf.Abs(gyroscope.y) > 0.01f)
+        if(Mathf.Abs(imu.gyroscope.x) > 0.01f && Mathf.Abs(imu.gyroscope.y) > 0.01f)
         {
             float deltaTime = (float)(context.time - lastInputContextInvokeTimes[context.action]);
             lastInputContextInvokeTimes[context.action] = context.time;
-
-            gameObject.transform.Rotate(gyroscope * Mathf.Rad2Deg * deltaTime);
+            gameObject.transform.Rotate(imu.gyroscope * Mathf.Rad2Deg * deltaTime);
         }
     }
 
