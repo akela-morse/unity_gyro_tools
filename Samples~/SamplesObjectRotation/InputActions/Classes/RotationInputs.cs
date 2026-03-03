@@ -109,6 +109,24 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""SizeChange"",
+                    ""type"": ""PassThrough"",
+                    ""id"": ""300890ee-15a5-4586-8180-7df9cbc03aeb"",
+                    ""expectedControlType"": ""Axis"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""DisableGyro"",
+                    ""type"": ""Button"",
+                    ""id"": ""5d4cef4b-ff9f-4986-885d-d7a617a89e9d"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": ""Press(behavior=2)"",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -144,6 +162,28 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
                     ""action"": ""Quit"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""5120c5b1-d740-49f3-8761-1ecca750ae4d"",
+                    ""path"": ""<Gamepad>/leftStick/x"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""SizeChange"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""5bb1cf7d-9448-4f83-87f7-985689c50e2b"",
+                    ""path"": ""<Gamepad>/buttonNorth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""DisableGyro"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -154,6 +194,8 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
         m_Imu = asset.FindActionMap("Imu", throwIfNotFound: true);
         m_Imu_Motion = m_Imu.FindAction("Motion", throwIfNotFound: true);
         m_Imu_Quit = m_Imu.FindAction("Quit", throwIfNotFound: true);
+        m_Imu_SizeChange = m_Imu.FindAction("SizeChange", throwIfNotFound: true);
+        m_Imu_DisableGyro = m_Imu.FindAction("DisableGyro", throwIfNotFound: true);
     }
 
     ~@RotationInputs()
@@ -236,6 +278,8 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
     private List<IImuActions> m_ImuActionsCallbackInterfaces = new List<IImuActions>();
     private readonly InputAction m_Imu_Motion;
     private readonly InputAction m_Imu_Quit;
+    private readonly InputAction m_Imu_SizeChange;
+    private readonly InputAction m_Imu_DisableGyro;
     /// <summary>
     /// Provides access to input actions defined in input action map "Imu".
     /// </summary>
@@ -255,6 +299,14 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Imu/Quit".
         /// </summary>
         public InputAction @Quit => m_Wrapper.m_Imu_Quit;
+        /// <summary>
+        /// Provides access to the underlying input action "Imu/SizeChange".
+        /// </summary>
+        public InputAction @SizeChange => m_Wrapper.m_Imu_SizeChange;
+        /// <summary>
+        /// Provides access to the underlying input action "Imu/DisableGyro".
+        /// </summary>
+        public InputAction @DisableGyro => m_Wrapper.m_Imu_DisableGyro;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -287,6 +339,12 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
             @Quit.started += instance.OnQuit;
             @Quit.performed += instance.OnQuit;
             @Quit.canceled += instance.OnQuit;
+            @SizeChange.started += instance.OnSizeChange;
+            @SizeChange.performed += instance.OnSizeChange;
+            @SizeChange.canceled += instance.OnSizeChange;
+            @DisableGyro.started += instance.OnDisableGyro;
+            @DisableGyro.performed += instance.OnDisableGyro;
+            @DisableGyro.canceled += instance.OnDisableGyro;
         }
 
         /// <summary>
@@ -304,6 +362,12 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
             @Quit.started -= instance.OnQuit;
             @Quit.performed -= instance.OnQuit;
             @Quit.canceled -= instance.OnQuit;
+            @SizeChange.started -= instance.OnSizeChange;
+            @SizeChange.performed -= instance.OnSizeChange;
+            @SizeChange.canceled -= instance.OnSizeChange;
+            @DisableGyro.started -= instance.OnDisableGyro;
+            @DisableGyro.performed -= instance.OnDisableGyro;
+            @DisableGyro.canceled -= instance.OnDisableGyro;
         }
 
         /// <summary>
@@ -358,5 +422,19 @@ public partial class @RotationInputs: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnQuit(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "SizeChange" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnSizeChange(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "DisableGyro" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnDisableGyro(InputAction.CallbackContext context);
     }
 }

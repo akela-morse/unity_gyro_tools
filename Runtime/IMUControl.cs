@@ -26,7 +26,7 @@ namespace MoreStories.GyroTools
         {
             return new IMUState
             {
-                acceleration = accel. ReadUnprocessedValueFromStateWithCaching(statePtr),
+                accelerometer = accel. ReadUnprocessedValueFromStateWithCaching(statePtr),
                 gyroscope    = gyro.  ReadUnprocessedValueFromStateWithCaching(statePtr)
             };
         }

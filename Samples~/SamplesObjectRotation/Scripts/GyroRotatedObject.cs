@@ -10,6 +10,7 @@ public class GyroRotatedObject : MonoBehaviour
 {
     RotationInputs rotationInputs;
 
+
     #region Input Action Helpers
 
     // Showing an example where you might want to have several input records for each action so as to use a delta time variable
@@ -49,22 +50,42 @@ public class GyroRotatedObject : MonoBehaviour
         rotationInputs = new RotationInputs();
         rotationInputs.Imu.Enable();
         
+        rotationInputs.Imu.DisableGyro.performed += ToggleGyroscope;
+        rotationInputs.Imu.SizeChange.performed += ChangeScale;
         rotationInputs.Imu.Quit.performed += (x) => Application.Quit();
         RegisterInputCallback(rotationInputs.Imu.Motion, GyroToRotation);
         
     }
 
-
+    void ChangeScale(InputAction.CallbackContext context)
+    {
+        float x = SafelyReadCallbackValue<float>(context);
+        transform.localScale =  Vector3.one * (1 + 0.5f*x);
+    }
+    void ToggleGyroscope(InputAction.CallbackContext context)
+    {
+        
+        if(rotationInputs.Imu.Motion.enabled)
+        {
+             rotationInputs.Imu.Motion.Disable();
+        }
+        else
+        {
+            rotationInputs.Imu.Motion.Enable();
+        }
+    }
 
     void GyroToRotation(InputAction.CallbackContext context)
     {
         IMUState imu = SafelyReadCallbackValue<IMUState>(context);
+        Vector3 gyroscope = imu.gyroscope;
+        Debug.Log(gyroscope);
         
-        if(Mathf.Abs(imu.gyroscope.x) > 0.01f && Mathf.Abs(imu.gyroscope.y) > 0.01f)
+        if(Mathf.Abs(gyroscope.x) > 0.01f && Mathf.Abs(gyroscope.y) > 0.01f)
         {
             float deltaTime = (float)(context.time - lastInputContextInvokeTimes[context.action]);
             lastInputContextInvokeTimes[context.action] = context.time;
-            gameObject.transform.Rotate(imu.gyroscope * Mathf.Rad2Deg * deltaTime);
+            gameObject.transform.Rotate(gyroscope * Mathf.Rad2Deg * deltaTime);
         }
     }
 

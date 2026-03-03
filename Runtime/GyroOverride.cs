@@ -125,15 +125,15 @@ namespace MoreStories.GyroTools
             extend = DS4HIDLayoutName,
             controls = new object[]
             {
-                new { name = IMUControlPath,   layout = IMUControlPath }, 
-                new { name = GyroControlPath,  format = "VC3S", layout = "Vector3", offset = 13, processors = "ScaleVector3(x=-8,  y=-8,  z=8)"  },
-                    new { name = GyroControlPath + "/x",  format = "SHRT", offset = 0},
-                    new { name = GyroControlPath + "/y",  format = "SHRT", offset = 2},
-                    new { name = GyroControlPath + "/z",  format = "SHRT", offset = 4},
-                new { name = AccelControlPath, format = "VC3S", layout = "Vector3", offset = 19, processors = "ScaleVector3(x=-38, y=-38, z=38)" },
-                    new { name = AccelControlPath + "/x",  format = "SHRT", offset = 0},
-                    new { name = AccelControlPath + "/y",  format = "SHRT", offset = 2},
-                    new { name = AccelControlPath + "/z",  format = "SHRT", offset = 4}
+                new { name = IMUControlPath,   layout = IMUControlPath, synthetic = false, offset = 13, processors = "ScaleIMU(accelX =38, accelY=38, accelZ=38, gyroX=-35, gyroY=-35, gyroZ=35)" }, 
+                new { name = GyroControlPath,  format = "VC3S", layout = "Vector3", offset = 0, synthetic = false, processors = "ScaleVector3(x=-35,  y=-35,  z=35)"  },
+                    new { name = GyroControlPath + "/x", layout= "Axis",  format = "SHRT", offset = 0, processors = "Scale(factor = -35)"},
+                    new { name = GyroControlPath + "/y", layout= "Axis",  format = "SHRT", offset = 2, processors = "Scale(factor = -35)"},
+                    new { name = GyroControlPath + "/z", layout= "Axis",  format = "SHRT", offset = 4, processors = "Scale(factor = 35)"},
+                new { name = AccelControlPath, format = "VC3S", layout = "Vector3", offset = 6, synthetic = false, processors = "ScaleVector3(x=38, y=38, z=38)" },
+                    new { name = AccelControlPath + "/x", layout = "Axis",  format = "SHRT", offset = 0, processors = "Scale(factor = 38)"},
+                    new { name = AccelControlPath + "/y", layout = "Axis",  format = "SHRT", offset = 2, processors = "Scale(factor = 38)"},
+                    new { name = AccelControlPath + "/z", layout = "Axis",  format = "SHRT", offset = 4, processors = "Scale(factor = 38)"}
             }
         };
 #endif
@@ -163,7 +163,7 @@ namespace MoreStories.GyroTools
             };
           
             // Add the custom update system after the EarlyUpdate phase in the Player Loop
-            var loopWithCustomUpdate = InsertSystemAfter<EarlyUpdate>(in defaultLoop, myCustomUpdate);
+            var loopWithCustomUpdate = InsertSystemAfter<PostLateUpdate>(in defaultLoop, myCustomUpdate);
             PlayerLoop.SetPlayerLoop(loopWithCustomUpdate);
         }
 
@@ -219,19 +219,17 @@ namespace MoreStories.GyroTools
 #if UNITY_STANDALONE
             AddNewIMULayout();
 #endif
-
+            start_sdl_loop ();
             RefreshGamepadControls(null, InputDeviceChange.Added);
             InputSystem.onDeviceChange -= RefreshGamepadControls;
             InputSystem.onDeviceChange += RefreshGamepadControls;
 
-            AddingMotionSensorEarlyUpdate();
-
-            start_sdl_loop ();
+            AddingMotionSensorEarlyUpdate();       
 
             register_gyro_callback  (ReadGyro);   
             register_accel_callback (ReadAccel);
 
-            Application.quitting += OnQuit;
+            Application.quitting += OnQuit; 
 
         }
 
@@ -248,7 +246,16 @@ namespace MoreStories.GyroTools
            
             while(LoadImuReading(type, ref imuReading))
             {
-                InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);    
+                if(motionControls[imuReading.controllerIndex].owner.layout == "DualShock4GamepadHID")
+                {
+                    set_controller_imu_state(imuReading.controllerIndex, false);
+                    
+                }
+                else
+                {
+                    InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
+                }
+                                 
             }
         }
 
@@ -281,12 +288,6 @@ namespace MoreStories.GyroTools
 
                 for (int i = 0; i < gamepads.Count; i++)
                 {
-                    // Temporarily ignore dualshock 4 until bug is fixed
-                    if(gamepads[i].layout == "Dualshock4GamepadHID")
-                    {
-                        set_controller_imu_state(i, false);
-                        continue;
-                    } 
                     var gyro  = gamepads[i].TryGetChildControl<Vector3Control>(GyroControlPath);
                     var accel = gamepads[i].TryGetChildControl<Vector3Control>(AccelControlPath);
 
