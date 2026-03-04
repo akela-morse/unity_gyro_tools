@@ -2,14 +2,13 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine.InputSystem.Controls;
 using System.Collections.Concurrent;
 using AOT;
 using UnityEngine.Scripting;
 using UnityEngine.PlayerLoop;
 using UnityEngine.LowLevel;
-using Newtonsoft.Json;
+using System;
 
 
 [assembly : AlwaysLinkAssembly]
@@ -91,6 +90,26 @@ namespace MoreStories.GyroTools
             }
         }
 
+        [Serializable]
+        public struct GyroControllerLayout
+        {
+            public string name;
+            public string extend;
+            public OverridenControl[] controls;
+            //public
+        }
+
+        [Serializable]
+        public struct OverridenControl
+        {
+            public string name;
+            public string layout;
+            public string format;
+            public bool   synthetic;
+            public int    offset;
+            public string processors;
+        }
+
         public enum ImuType
         {
             Gyroscope,
@@ -100,56 +119,50 @@ namespace MoreStories.GyroTools
        
         #endregion
 
+        #region layout_information
+
         public const string DS4HIDLayoutName = "Dualshock4GamepadHID";
         public const string IMUControlPath   = "IMU";
         public const string GyroControlPath  = IMUControlPath + "/gyro";
         public const string AccelControlPath = IMUControlPath + "/accel";
-
-        static object GamepadWithIMUOverride = new
+        static GyroControllerLayout GamepadWithIMUOverride = new GyroControllerLayout
         {
             name = "GamepadWithIMU",
             extend = "Gamepad",
-            controls = new object[]
+            controls = new OverridenControl[]
             {
-                new { name = IMUControlPath,   layout = IMUControlPath, synthetic = true, offset = 64 }, //Large offset so that it doesn't conflict with HID values
-                new { name = GyroControlPath,  layout = "Vector3",      synthetic = true },
-                new { name = AccelControlPath, layout = "Vector3",      synthetic = true }
+                new OverridenControl { name = IMUControlPath,   layout = IMUControlPath, synthetic = true, offset = 64 }, //Large offset so that it doesn't conflict with HID values
+                new OverridenControl { name = AccelControlPath, layout = "Vector3",      synthetic = true, offset = 0 },
+                new OverridenControl { name = GyroControlPath,  layout = "Vector3",      synthetic = true, offset = 12  }
             }
         };
 
 // Temporary Measure to combat current glitch where DS4 controllers won't accept layout override inputs externally
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-        static object Dualshock4HIDOverride = new
+        static GyroControllerLayout Dualshock4HIDOverride = new GyroControllerLayout
         {
             name = "Dualshock4GamepadHIDCustom",
             extend = DS4HIDLayoutName,
-            controls = new object[]
+            controls = new OverridenControl[]
             {
-                new { name = IMUControlPath,   layout = IMUControlPath, synthetic = false, offset = 13, processors = "ScaleIMU(accelX =38, accelY=38, accelZ=38, gyroX=-35, gyroY=-35, gyroZ=35)" }, 
-                new { name = GyroControlPath,  format = "VC3S", layout = "Vector3", offset = 0, synthetic = false, processors = "ScaleVector3(x=-35,  y=-35,  z=35)"  },
-                    new { name = GyroControlPath + "/x", layout= "Axis",  format = "SHRT", offset = 0, processors = "Scale(factor = -35)"},
-                    new { name = GyroControlPath + "/y", layout= "Axis",  format = "SHRT", offset = 2, processors = "Scale(factor = -35)"},
-                    new { name = GyroControlPath + "/z", layout= "Axis",  format = "SHRT", offset = 4, processors = "Scale(factor = 35)"},
-                new { name = AccelControlPath, format = "VC3S", layout = "Vector3", offset = 6, synthetic = false, processors = "ScaleVector3(x=38, y=38, z=38)" },
-                    new { name = AccelControlPath + "/x", layout = "Axis",  format = "SHRT", offset = 0, processors = "Scale(factor = 38)"},
-                    new { name = AccelControlPath + "/y", layout = "Axis",  format = "SHRT", offset = 2, processors = "Scale(factor = 38)"},
-                    new { name = AccelControlPath + "/z", layout = "Axis",  format = "SHRT", offset = 4, processors = "Scale(factor = 38)"}
+                new OverridenControl { name = IMUControlPath,   layout = IMUControlPath, synthetic = false, offset = 13, processors = "ScaleIMU(accelX =38, accelY=38, accelZ=38, gyroX=-35, gyroY=-35, gyroZ=35)" }, 
+                new OverridenControl{ name = GyroControlPath,  format = "VC3S", layout = "Vector3", offset = 0, synthetic = false, processors = "ScaleVector3(x=-35,  y=-35,  z=35)"  },
+                    new OverridenControl { name = GyroControlPath + "/x", layout= "Axis",  format = "SHRT", offset = 0, processors = "Scale(factor = -35)"},
+                    new OverridenControl { name = GyroControlPath + "/y", layout= "Axis",  format = "SHRT", offset = 2, processors = "Scale(factor = -35)"},
+                    new OverridenControl { name = GyroControlPath + "/z", layout= "Axis",  format = "SHRT", offset = 4, processors = "Scale(factor = 35)"},
+                new OverridenControl { name = AccelControlPath, format = "VC3S", layout = "Vector3", offset = 6, synthetic = false, processors = "ScaleVector3(x=38, y=38, z=38)" },
+                    new OverridenControl { name = AccelControlPath + "/x", layout = "Axis",  format = "SHRT", offset = 0, processors = "Scale(factor = 38)"},
+                    new OverridenControl { name = AccelControlPath + "/y", layout = "Axis",  format = "SHRT", offset = 2, processors = "Scale(factor = 38)"},
+                    new OverridenControl { name = AccelControlPath + "/z", layout = "Axis",  format = "SHRT", offset = 4, processors = "Scale(factor = 38)"}
             }
         };
 #endif
-        static MotionControls[] motionControls;
-        static ConcurrentQueue<ImuReading> gyroReadings  = new ConcurrentQueue<ImuReading>(), 
-                                           accelReadings = new ConcurrentQueue<ImuReading>();
-        
-        static bool LoadImuReading(ImuType imuType, ref ImuReading imuReading) 
-        => imuType switch
-        {
-            ImuType.Gyroscope     => gyroReadings.  TryDequeue(out imuReading),
-            ImuType.Accelerometer => accelReadings. TryDequeue(out imuReading),
-             _ => false
-        };
 
-        private static void AddingMotionSensorEarlyUpdate()
+        #endregion
+        
+        #region player_loop_imu_callback_insertion
+        
+        private static void AddingMotionSensorUpdateToPlayerLoop()
         {
             // Retrieve the default Player loop system. Get the current loop instead if the default was already modified previously.
             var defaultLoop = PlayerLoop.GetDefaultPlayerLoop();
@@ -162,8 +175,15 @@ namespace MoreStories.GyroTools
                 type = typeof(MotionSensorUpdate)
             };
           
-            // Add the custom update system after the EarlyUpdate phase in the Player Loop
+            // We want the IMU input buffer to be read as close to the time that the input system is updated
+            // On windows using Early Update types breaks the input system so we use it on the latest update
+            // On linux there are no issues with which updates to use, so we do it in Initialization before EarlyUpdate (Where the input is updated)
+            // Differences should be negligeble anyways
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
             var loopWithCustomUpdate = InsertSystemAfter<PostLateUpdate>(in defaultLoop, myCustomUpdate);
+#else
+            var loopWithCustomUpdate = InsertSystemAfter<Initialization>(in defaultLoop, myCustomUpdate);
+#endif
             PlayerLoop.SetPlayerLoop(loopWithCustomUpdate);
         }
 
@@ -197,13 +217,27 @@ namespace MoreStories.GyroTools
             newPlayerLoop.subSystemList = newSubSystemList.ToArray();
             return newPlayerLoop;
         }
+        
+        #endregion
+
+        static MotionControls[] motionControls;
+        static ConcurrentQueue<ImuReading> gyroReadings  = new ConcurrentQueue<ImuReading>(), 
+                                           accelReadings = new ConcurrentQueue<ImuReading>();
+        
+        static bool LoadImuReading(ImuType imuType, ref ImuReading imuReading) 
+        => imuType switch
+        {
+            ImuType.Gyroscope     => gyroReadings.  TryDequeue(out imuReading),
+            ImuType.Accelerometer => accelReadings. TryDequeue(out imuReading),
+             _ => false
+        };
 
         static void AddNewIMULayout()
         {
             InputSystem.RegisterLayout<IMUControl>(IMUControlPath);
-            InputSystem.RegisterLayoutOverride(JsonConvert.SerializeObject(GamepadWithIMUOverride));
+            InputSystem.RegisterLayoutOverride(JsonUtility.ToJson(GamepadWithIMUOverride));
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-            InputSystem.RegisterLayoutOverride(JsonConvert.SerializeObject(Dualshock4HIDOverride));
+            InputSystem.RegisterLayoutOverride(JsonUtility.ToJson(Dualshock4HIDOverride));
 #endif
         }
 
@@ -224,7 +258,7 @@ namespace MoreStories.GyroTools
             InputSystem.onDeviceChange -= RefreshGamepadControls;
             InputSystem.onDeviceChange += RefreshGamepadControls;
 
-            AddingMotionSensorEarlyUpdate();       
+            AddingMotionSensorUpdateToPlayerLoop();       
 
             register_gyro_callback  (ReadGyro);   
             register_accel_callback (ReadAccel);
@@ -246,6 +280,7 @@ namespace MoreStories.GyroTools
            
             while(LoadImuReading(type, ref imuReading))
             {
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
                 if(motionControls[imuReading.controllerIndex].owner.layout == "DualShock4GamepadHID")
                 {
                     set_controller_imu_state(imuReading.controllerIndex, false);
@@ -255,6 +290,10 @@ namespace MoreStories.GyroTools
                 {
                     InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
                 }
+#else
+                InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
+#endif
+
                                  
             }
         }
