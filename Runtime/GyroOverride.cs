@@ -31,7 +31,7 @@ namespace MoreStories.GyroTools
 
         [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
         private static extern void register_gyro_callback(ControllerSensorCallback callback);
-        
+
         [DllImport(imu_library, CallingConvention = CallingConvention.Cdecl)]
         private static extern void register_accel_callback(ControllerSensorCallback callback);
 
@@ -60,7 +60,7 @@ namespace MoreStories.GyroTools
             {
                 get         => imus[(int)type];
                 private set => imus[(int)type] = value;
-            } 
+            }
 
             public MotionControls(Gamepad owner, Vector3Control gyroscope, Vector3Control accelerometer)
             {
@@ -76,7 +76,7 @@ namespace MoreStories.GyroTools
         {
             public Vector3 value       {get; private set;}
             public int controllerIndex {get; private set;}
-            
+
             public ImuReading(int controllerIndex, Vector3 value)
             {
                 this.controllerIndex = controllerIndex;
@@ -116,7 +116,7 @@ namespace MoreStories.GyroTools
             Accelerometer,
             Count = 2
         }
-       
+
         #endregion
 
         #region layout_information
@@ -145,7 +145,7 @@ namespace MoreStories.GyroTools
             extend = DS4HIDLayoutName,
             controls = new OverridenControl[]
             {
-                new OverridenControl { name = IMUControlPath,   layout = IMUControlPath, synthetic = false, offset = 13, processors = "ScaleIMU(accelX =38, accelY=38, accelZ=38, gyroX=-35, gyroY=-35, gyroZ=35)" }, 
+                new OverridenControl { name = IMUControlPath,   layout = IMUControlPath, synthetic = false, offset = 13, processors = "ScaleIMU(accelX =38, accelY=38, accelZ=38, gyroX=-35, gyroY=-35, gyroZ=35)" },
                 new OverridenControl{ name = GyroControlPath,  format = "VC3S", layout = "Vector3", offset = 0, synthetic = false, processors = "ScaleVector3(x=-35,  y=-35,  z=35)"  },
                     new OverridenControl { name = GyroControlPath + "/x", layout= "Axis",  format = "SHRT", offset = 0, processors = "Scale(factor = -35)"},
                     new OverridenControl { name = GyroControlPath + "/y", layout= "Axis",  format = "SHRT", offset = 2, processors = "Scale(factor = -35)"},
@@ -159,13 +159,13 @@ namespace MoreStories.GyroTools
 #endif
 
         #endregion
-        
+
         #region player_loop_imu_callback_insertion
-        
+
         private static void AddingMotionSensorUpdateToPlayerLoop()
         {
             // Retrieve the default Player loop system. Get the current loop instead if the default was already modified previously.
-            var defaultLoop = PlayerLoop.GetDefaultPlayerLoop();
+            var defaultLoop = PlayerLoop.GetCurrentPlayerLoop();
 
             // Create a custom update system
             var myCustomUpdate = new PlayerLoopSystem
@@ -174,7 +174,7 @@ namespace MoreStories.GyroTools
                 updateDelegate = FeedImuValues,
                 type = typeof(MotionSensorUpdate)
             };
-          
+
             // We want the IMU input buffer to be read as close to the time that the input system is updated
             // On windows using Early Update types breaks the input system so we use it on the latest update
             // On linux there are no issues with which updates to use, so we do it in Initialization before EarlyUpdate (Where the input is updated)
@@ -217,14 +217,15 @@ namespace MoreStories.GyroTools
             newPlayerLoop.subSystemList = newSubSystemList.ToArray();
             return newPlayerLoop;
         }
-        
+
         #endregion
 
+        static bool quitting;
         static MotionControls[] motionControls;
-        static ConcurrentQueue<ImuReading> gyroReadings  = new ConcurrentQueue<ImuReading>(), 
+        static ConcurrentQueue<ImuReading> gyroReadings  = new ConcurrentQueue<ImuReading>(),
                                            accelReadings = new ConcurrentQueue<ImuReading>();
-        
-        static bool LoadImuReading(ImuType imuType, ref ImuReading imuReading) 
+
+        static bool LoadImuReading(ImuType imuType, ref ImuReading imuReading)
         => imuType switch
         {
             ImuType.Gyroscope     => gyroReadings.  TryDequeue(out imuReading),
@@ -258,17 +259,20 @@ namespace MoreStories.GyroTools
             InputSystem.onDeviceChange -= RefreshGamepadControls;
             InputSystem.onDeviceChange += RefreshGamepadControls;
 
-            AddingMotionSensorUpdateToPlayerLoop();       
+            AddingMotionSensorUpdateToPlayerLoop();
 
-            register_gyro_callback  (ReadGyro);   
+            register_gyro_callback  (ReadGyro);
             register_accel_callback (ReadAccel);
 
-            Application.quitting += OnQuit; 
+            Application.quitting += OnQuit;
 
         }
 
         static void FeedImuValues()
         {
+            if (quitting)
+                return;
+
             ImuReading imu = new ImuReading();
             DequeueImuValues(ImuType.Gyroscope,     ref imu);
             DequeueImuValues(ImuType.Accelerometer, ref imu);
@@ -277,14 +281,14 @@ namespace MoreStories.GyroTools
 
         static void DequeueImuValues(ImuType type, ref ImuReading imuReading)
         {
-           
+
             while(LoadImuReading(type, ref imuReading))
             {
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
                 if(motionControls[imuReading.controllerIndex].owner.layout == "DualShock4GamepadHID")
                 {
                     set_controller_imu_state(imuReading.controllerIndex, false);
-                    
+
                 }
                 else
                 {
@@ -294,23 +298,25 @@ namespace MoreStories.GyroTools
                 InputSystem.QueueDeltaStateEvent(motionControls[imuReading.controllerIndex][type], imuReading.value);
 #endif
 
-                                 
+
             }
         }
 
         static void OnQuit()
         {
+            quitting = true;
+
             stop_sdl_loop();
             InputSystem.onDeviceChange -= RefreshGamepadControls;
 
         }
-        
+
         /// According to the SDL wiki SDL uses a right hand coordinate system where Y is up
         /// Thus positive rotations are those seen from the positive side of an axis going counter clockwise
-        /// 
+        ///
         /// Unity uses a left hand coordinate system where Y is up
         /// Thus positive rotations are those seen from the positive side of an axis going clockwise
-        /// 
+        ///
         /// Thus we translate the values from SDL to be in line with the Unity standard
         [MonoPInvokeCallback (typeof(ControllerSensorCallback))]
         static void ReadGyro  (int controllerIndex, float x, float y, float z) => gyroReadings.  Enqueue(new ImuReading(controllerIndex, -x, -y, z));
@@ -338,10 +344,8 @@ namespace MoreStories.GyroTools
                     motionControls[i] = new MotionControls(gamepads[i], gyro, accel);
                 }
             }
-            
+
         }
 
     }
 }
-
-
